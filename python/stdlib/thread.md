@@ -8,37 +8,38 @@ import threading
 
 
 class TaskProducer(threading.Thread):
-    def __init__(self, name: str, q: queue.Queue):
+    def __init__(self,queue):
         threading.Thread.__init__(self)
-        self.q = q
-        self.name = name
+        self.queue = queue
 
     def run(self):
         for i in range(10):
-            task = {"name": self.name, "id": i}
+            task = {"id": i}
             print(f"producer: {task}")
-            self.q.put(task)
+            self.queue.put(task)
+        self.queue.put(None)
+        print("producer finished, sent signal")
 
 
 class TaskConsumer(threading.Thread):
-    def __init__(self, name: str, q: queue.Queue):
+    def __init__(self, queue):
         threading.Thread.__init__(self)
-        self.q = q
-        self.name = name
+        self.queue = queue
 
     def run(self):
         while True:
-            task = self.q.get()
-            print(f"consumer: {task}")
-            if self.q.empty():
+            task = self.queue.get()
+            if task is None:
+                print("consumer received stop signal")
                 break
+            print(f"consumer: {task}")
             time.sleep(1.5)
 
 
 if __name__ == "__main__":
     q = queue.Queue(maxsize=5)
-    producer = TaskProducer("生产者", q)
-    consumer = TaskConsumer("消费者", q)
+    producer = TaskProducer(q)
+    consumer = TaskConsumer(q)
 
     producer.start()
     consumer.start()
